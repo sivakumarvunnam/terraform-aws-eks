@@ -29,7 +29,7 @@ variable "fargate_profiles" {
 
 variable "wait" {
   description = "Wait duration after control plane creation"
-  default     = "90s"
+  default     = "180s"
 }
 
 ### feature
@@ -64,4 +64,15 @@ variable "tags" {
   description = "The key-value maps for tagging"
   type        = map(string)
   default     = {}
+}
+
+### connect to cluster
+variable "workstation_cidr" {
+  default     = "0.0.0.0/0"
+  description = "CIDR blocks from which to allow inbound traffic to the Kubernetes control plane."
+}
+
+variable "ssh_cidr" {
+  default     = "0.0.0.0/0"
+  description = "The CIDR blocks from which to allow incoming ssh connections to the EKS nodes."
 }

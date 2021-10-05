@@ -1,5 +1,5 @@
 ## managed kubernetes cluster
-
+## Use this data source to lookup information about the current AWS partition in which Terraform is working.
 data "aws_partition" "current" {}
 
 ## features
@@ -9,7 +9,7 @@ locals {
   fargate_enabled             = (var.fargate_profiles != null ? ((length(var.fargate_profiles) > 0) ? true : false) : false)
 }
 
-## control plane (cp)
+## iam role for control plane (cp)
 # security/policy
 resource "aws_iam_role" "cp" {
   name = format("%s-cp", local.name)
@@ -46,6 +46,7 @@ resource "aws_eks_cluster" "cp" {
 
   vpc_config {
     subnet_ids = local.subnet_ids
+    security_group_ids = [aws_security_group.cluster.id]
   }
 
   depends_on = [
@@ -54,7 +55,7 @@ resource "aws_eks_cluster" "cp" {
   ]
 }
 
-## node groups (ng)
+## iam role for node groups (ng)
 # security/policy
 resource "aws_iam_role" "ng" {
   count = local.node_groups_enabled || local.managed_node_groups_enabled ? 1 : 0
@@ -191,14 +192,15 @@ resource "aws_launch_template" "ng" {
   block_device_mappings {
     device_name = "/dev/xvda"
     ebs {
-      volume_size           = lookup(each.value, "disk_size", "20")
-      volume_type           = "gp2"
+      volume_size           = lookup(each.value, "disk_size", "30")
+      volume_type           = "gp3"
       delete_on_termination = true
     }
   }
 
   network_interfaces {
     security_groups       = [aws_eks_cluster.cp.vpc_config.0.cluster_security_group_id]
+    #security_groups       = [aws_security_group.node.id]
     delete_on_termination = true
   }
 
@@ -320,8 +322,8 @@ resource "aws_launch_template" "mng" {
   block_device_mappings {
     device_name = "/dev/xvda"
     ebs {
-      volume_size           = lookup(each.value, "disk_size", "20")
-      volume_type           = "gp2"
+      volume_size           = lookup(each.value, "disk_size", "30")
+      volume_type           = "gp3"
       delete_on_termination = true
     }
   }
@@ -373,7 +375,7 @@ resource "aws_eks_node_group" "ng" {
   ]
 }
 
-## fargate
+## iam role for fargate
 # security/policy
 resource "aws_iam_role" "fargate" {
   count = local.fargate_enabled ? 1 : 0
