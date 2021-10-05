@@ -1,1 +1,1 @@
-# terraform-eks
+# terraform-aws-ks

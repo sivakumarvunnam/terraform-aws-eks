@@ -13,6 +13,11 @@ output "kubeconfig" {
   value       = module.eks.kubeconfig
 }
 
+output "helmconfig" {
+  description = "Bash script to update the kubeconfig file for the EKS cluster"
+  value       = module.eks.helmconfig
+}
+
 output "features" {
   description = "Features configurations of the AWS EKS cluster"
   value       = module.eks.features

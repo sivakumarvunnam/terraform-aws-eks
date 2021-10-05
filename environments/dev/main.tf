@@ -10,7 +10,7 @@ provider "aws" {
 
 # eks
 module "eks" {
-  source              = "Young-ook/eks/aws"
+  source              = "git::https://github.com/sivakumarvunnam/terraform-aws-eks.git?ref=main"
   name                = var.name
   tags                = var.tags
   kubernetes_version  = var.kubernetes_version
