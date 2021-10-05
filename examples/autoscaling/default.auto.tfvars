@@ -35,3 +35,4 @@ node_groups = [
     desired_size  = 1
     instance_type = "t3.large"
   }
+]
