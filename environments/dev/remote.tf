@@ -3,7 +3,7 @@ terraform {
     organization = "sg-tech"
 
     workspaces {
-      name = "terraform-eks"
+      name = "terraform-eks-dev"
     }
   }
 }
