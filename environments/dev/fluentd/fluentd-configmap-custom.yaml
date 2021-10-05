@@ -1,0 +1,92 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: fluentd-config
+  namespace: kube-logging
+data:
+  fluent.conf: |-
+    ################################################################
+    # This source gets all logs from local docker host
+    # https://www.py4u.net/discuss/1587030
+    @include pods-fluent.conf
+    @include elastic-fluent.conf
+  pods-fluent.conf: |-
+    <label @FLUENT_LOG>
+      <match fluent.**>
+        @type null
+      </match>  
+    </label>
+
+    <source>
+      @type tail
+      format json
+      @id in_tail_container_logs
+      path /var/log/containers/*.log
+      pos_file /var/log/fluentd-containers.log.pos
+      tag "#{ENV['FLUENT_CONTAINER_TAIL_TAG'] || 'kubernetes.*'}"
+      # exclude_path "#{ENV['FLUENT_CONTAINER_TAIL_EXCLUDE_PATH'] || use_default}"
+      exclude_path ["/var/log/containers/fluent*", "/var/log/containers/kibana*", "/var/log/containers/ebs-csi*", "/var/log/containers/es-cluster*" ]
+      read_from_head true
+      <parse>
+        @type kubernetes
+        @type "#{ENV['FLUENT_CONTAINER_TAIL_PARSER_TYPE'] || 'json'}"
+        time_format %Y-%m-%dT%H:%M:%S.%NZ
+      </parse>
+    </source>
+
+    <source>
+      @type sample
+      sample {"level":"WARN","message":"Rule calculation failed ## HashMap(calculationId -> 5edfb6cc350000da3a78bd6c, questionGroupVersionId -> 6070798c43000090e864cbd6, questionGroupId -> 5abd4cdc2100008200f29154, supplierId -> 4b1da344504943aec681d09c, siteId -> 5ed7e72328000035b3add918)","env":"time","AVETTA_ENV":"time","environment":"time","appName":"recalcservice","service.name":"recalcservice","serviceName":"recalcservice","exception":null,"position":"com.avetta.recalcservice.services.calculations.DefaultRuleService#runRule evaluateResult:31","thread_name":"scala-execution-context-global-23","timestamp":"2022-01-08T07:49:26"}
+      tag sample
+    </source>
+
+    <filter kubernetes.**>
+      @type kubernetes_metadata
+      @id filter_kube_metadata
+      kubernetes_url "#{ENV['FLUENT_FILTER_KUBERNETES_URL'] || 'https://' + ENV.fetch('KUBERNETES_SERVICE_HOST') + ':' + ENV.fetch('KUBERNETES_SERVICE_PORT') + '/api'}"
+      verify_ssl "#{ENV['KUBERNETES_VERIFY_SSL'] || true}"
+      ca_file "#{ENV['KUBERNETES_CA_FILE']}"
+      skip_labels "#{ENV['FLUENT_KUBERNETES_METADATA_SKIP_LABELS'] || 'false'}"
+      skip_container_metadata "#{ENV['FLUENT_KUBERNETES_METADATA_SKIP_CONTAINER_METADATA'] || 'false'}"
+      skip_master_url "#{ENV['FLUENT_KUBERNETES_METADATA_SKIP_MASTER_URL'] || 'false'}"
+      skip_namespace_metadata "#{ENV['FLUENT_KUBERNETES_METADATA_SKIP_NAMESPACE_METADATA'] || 'false'}"
+    </filter>
+
+    <filter **>
+      @type record_transformer
+      enable_ruby true
+      <record>
+        log_json ${record['log']}
+      </record>
+    </filter>
+
+    <filter **>
+      @type record_transformer
+      enable_ruby true
+      <record>
+        AVETTA_ENV "eks-time"
+      </record>
+    </filter>
+
+    <filter **>
+      @type parser
+      @log_level debug
+      key_name log_json
+      reserve_data true
+      remove_key_name_field true
+      emit_invalid_record_to_error false
+      <parse>
+        @type json
+      </parse>
+    </filter>
+  elastic-fluent.conf: |-
+    <match **>
+      @type elasticsearch
+      host "#{ENV['FLUENT_ELASTICSEARCH_HOST'] || 'elasticsearch.kube-logging.svc.cluster.local'}"
+      port "#{ENV['FLUENT_ELASTICSEARCH_PORT'] || '9200'}"
+      type_name fluentd
+      logstash_format true
+      logstash_dateformat %Y-%m-%d
+      logstash_prefix fluentd-k8s
+      include_timestamp true
+    </match>
