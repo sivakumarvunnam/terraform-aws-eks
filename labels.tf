@@ -10,6 +10,7 @@ locals {
   service = "eks"
   uid     = join("-", [local.service, random_string.uid.result])
   name    = var.name == null || var.name == "" ? local.uid : var.name
+  clustername = join("-", [var.name, random_string.uid.result])
   default-tags = merge(
     { "terraform.io" = "managed" },
     local.eks-owned-tag
