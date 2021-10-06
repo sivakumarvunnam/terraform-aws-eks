@@ -12,7 +12,7 @@ locals {
 ## iam role for control plane (cp)
 # security/policy
 resource "aws_iam_role" "cp" {
-  name = format("%s-cp", local.name)
+  name = format("%s-cp", local.clustername)
   tags = merge(local.default-tags, var.tags)
   assume_role_policy = jsonencode({
     Statement = [{
@@ -37,7 +37,7 @@ resource "aws_iam_role_policy_attachment" "eks-service" {
 }
 
 resource "aws_eks_cluster" "cp" {
-  name     = format("%s", local.name)
+  name     = format("%s", local.clustername)
   role_arn = aws_iam_role.cp.arn
   version  = var.kubernetes_version
   tags     = merge(local.default-tags, var.tags)
@@ -59,7 +59,7 @@ resource "aws_eks_cluster" "cp" {
 # security/policy
 resource "aws_iam_role" "ng" {
   count = local.node_groups_enabled || local.managed_node_groups_enabled ? 1 : 0
-  name  = format("%s-ng", local.name)
+  name  = format("%s-ng", local.clustername)
   tags  = merge(local.default-tags, var.tags)
   assume_role_policy = jsonencode({
     Statement = [{
@@ -75,7 +75,7 @@ resource "aws_iam_role" "ng" {
 
 resource "aws_iam_instance_profile" "ng" {
   count = local.node_groups_enabled || local.managed_node_groups_enabled ? 1 : 0
-  name  = format("%s-ng", local.name)
+  name  = format("%s-ng", local.clustername)
   role  = aws_iam_role.ng.0.name
 }
 
