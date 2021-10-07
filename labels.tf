@@ -1,5 +1,5 @@
 resource "random_string" "uid" {
-  length  = 12
+  length  = 5
   upper   = false
   lower   = true
   number  = false
@@ -20,10 +20,10 @@ locals {
 ## kubernetes tags
 locals {
   eks-shared-tag = {
-    format("kubernetes.io/cluster/%s", local.name) = "shared"
+    format("kubernetes.io/cluster/%s", local.clustername) = "shared"
   }
   eks-owned-tag = {
-    format("kubernetes.io/cluster/%s", local.name) = "owned"
+    format("kubernetes.io/cluster/%s", local.clustername) = "owned"
   }
   eks-elb-tag = {
     "kubernetes.io/role/elb" = "1"
@@ -33,11 +33,11 @@ locals {
   }
   eks-autoscaler-tag = {
     "k8s.io/cluster-autoscaler/enabled"                = "true"
-    format("k8s.io/cluster-autoscaler/%s", local.name) = "owned"
+    format("k8s.io/cluster-autoscaler/%s", local.clustername) = "owned"
   }
   eks-tag = merge(
     {
-      "eks:cluster-name" = local.name
+      "eks:cluster-name" = local.clustername
     },
     local.eks-owned-tag,
     local.eks-autoscaler-tag,
